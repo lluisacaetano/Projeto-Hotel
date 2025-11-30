@@ -1,27 +1,28 @@
 <?php
 
-// classe de conexão com o banco de dados
 class Database {
     private $host = "localhost";
-    private $db_name = "hotel";
-    private $username = "admin";
-    private $password = "bd2025";
+    private $db_name = "mydb";
+    private $username = "root";
+    private $password = "bd2025";  // ← SENHA VAZIA (tente sem senha)
     private $conn;
-    
-    public function getConnection(){
+
+    public function getConnection() {
         $this->conn = null;
 
         try {
             $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name,
+                "mysql:host={$this->host};dbname={$this->db_name}",
                 $this->username,
                 $this->password
             );
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->conn->exec("set names utf8");
-        } catch(PDOException $excep){
-            echo "Erro ao conectar: " . $excep->getMessage();
+            $this->conn->exec("SET NAMES utf8mb4");
+            
+        } catch (PDOException $e) {
+            die("❌ ERRO DE CONEXÃO: " . $e->getMessage());
         }
+
         return $this->conn;
     }
 }
