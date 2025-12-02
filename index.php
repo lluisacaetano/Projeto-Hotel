@@ -8,8 +8,11 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+          background-color: #a8d5ba;
+min-height: 100vh;
+
+
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .menu-card {
             transition: transform 0.3s, box-shadow 0.3s;
