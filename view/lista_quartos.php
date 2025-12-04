@@ -109,6 +109,10 @@ if ($resultado['sucesso']) {
                         <a href="deletar_reserva.php"><i class="fas fa-trash"></i> Deletar</a>
                     </div>
                 </div>
+
+                <div class="nav-item">
+                    <a href="relatorios/relatorio_hospede.php"><i class="fas fa-chart-bar"></i> Relatórios</a>
+                </div>
             </nav>
         </aside>
 

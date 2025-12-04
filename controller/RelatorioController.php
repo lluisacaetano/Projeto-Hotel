@@ -7,7 +7,7 @@ use database\Database;
 use PDO;
 
 class RelatorioController {
-    private $conn;
+    public $conn; // <-- alterado de private para public
 
     public function __construct() {
         $db = new Database();
@@ -155,9 +155,56 @@ class RelatorioController {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // ...outros métodos do dashboard...
     public function dashboard() {
-        // ...implementação igual ao que já existe...
-        return ['sucesso' => true, 'estatisticas' => [], 'hospedes_ativos' => []];
+        // Estatísticas gerais
+        $estatisticas = [
+            'total_hospedes' => 0,
+            'hospedes_ativos' => 0,
+            'total_reservas' => 0,
+            'receita_total' => 0,
+            'ticket_medio_geral' => 0
+        ];
+        $hospedes_ativos = [];
+
+        // Total de hóspedes
+        $sql = "SELECT COUNT(*) as total FROM pessoa WHERE tipo_pessoa = 'hospede'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $estatisticas['total_hospedes'] = (int)$stmt->fetchColumn();
+
+        // Total de reservas e receita
+        $sql = "SELECT COUNT(*) as total, SUM(valor_reserva) as receita FROM reserva WHERE status IN ('confirmada', 'finalizada')";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $estatisticas['total_reservas'] = (int)$row['total'];
+        $estatisticas['receita_total'] = (float)$row['receita'];
+
+        // Ticket médio geral
+        $estatisticas['ticket_medio_geral'] = $estatisticas['total_reservas'] > 0
+            ? $estatisticas['receita_total'] / $estatisticas['total_reservas']
+            : 0;
+
+        // Hóspedes ativos (check-in <= hoje e check-out >= hoje)
+        $sql = "SELECT p.nome, q.numero AS numero_quarto, r.data_checkin_previsto AS data_checkin, r.data_checkout_previsto AS data_checkout,
+                       DATEDIFF(r.data_checkout_previsto, CURDATE()) AS dias_restantes, p.telefone
+                FROM pessoa p
+                INNER JOIN hospede h ON p.id_pessoa = h.id_pessoa
+                INNER JOIN reserva r ON h.id_pessoa = r.id_hospede
+                INNER JOIN quarto q ON r.id_quarto = q.id_quarto
+                WHERE r.status = 'confirmada'
+                  AND CURDATE() BETWEEN r.data_checkin_previsto AND r.data_checkout_previsto";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $hospedes_ativos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Hóspedes ativos (quantidade)
+        $estatisticas['hospedes_ativos'] = count($hospedes_ativos);
+
+        return [
+            'sucesso' => true,
+            'estatisticas' => $estatisticas,
+            'hospedes_ativos' => $hospedes_ativos
+        ];
     }
 }

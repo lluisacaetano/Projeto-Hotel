@@ -14,6 +14,20 @@ $topHospedes = $controller->hospedesMaisFrequentes(10);
 $stats = $dashboard['sucesso'] ? $dashboard['estatisticas'] : [];
 $hospedesAtivos = $dashboard['sucesso'] ? $dashboard['hospedes_ativos'] : [];
 $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
+
+// Função para buscar reservas de um hóspede
+function buscarReservasPorHospede($conn, $nome) {
+    $sql = "SELECT r.idreserva, r.data_checkin_previsto, r.data_checkout_previsto, r.valor_reserva, r.status, q.numero as quarto_numero
+            FROM reserva r
+            INNER JOIN hospede h ON r.id_hospede = h.id_pessoa
+            INNER JOIN pessoa p ON h.id_pessoa = p.id_pessoa
+            INNER JOIN quarto q ON r.id_quarto = q.id_quarto
+            WHERE p.nome = ?
+            ORDER BY r.data_checkin_previsto DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([$nome]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -53,6 +67,142 @@ $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
         .top-1 { background: linear-gradient(135deg, #FFD700, #FFA500); }
         .top-2 { background: linear-gradient(135deg, #C0C0C0, #808080); }
         .top-3 { background: linear-gradient(135deg, #CD7F32, #8B4513); }
+
+        /* Novo estilo para títulos dos cards de relatório */
+        .report-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .report-card-header {
+            background: linear-gradient(135deg, #d6a427ff 0%, #d6a427ff 100%);
+            padding: 20px 30px;
+            border-bottom: 3px solid #6B5111;
+        }
+
+        .report-card-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #6B5111;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .report-card-title i {
+            font-size: 1.3rem;
+        }
+
+        .report-card-subtitle {
+            font-family: 'Lato', sans-serif;
+            font-size: 0.9rem;
+            color: #5a4610;
+            margin: 8px 0 0 0;
+            font-weight: 400;
+        }
+
+        .report-card-body {
+            padding: 25px 30px;
+        }
+
+        /* Ajuste para as tabelas dentro dos cards */
+        .report-card .table-responsive {
+            margin: 0;
+        }
+
+        .report-card table {
+            margin-bottom: 0;
+        }
+
+        /* Estilo do modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .modal-header-cinzel {
+            background: linear-gradient(135deg, #d6a427ff 0%, #d6a427ff 100%);
+            padding: 15px;
+            border-bottom: 3px solid #6B5111;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        .modal-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .modal-close:hover,
+        .modal-close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-body-columns {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px 0;
+        }
+
+        .modal-body-columns .column {
+            flex: 1;
+        }
+
+        /* Estilo para o botão de ver reservas */
+        .btn-view-details {
+            background: none;
+            border: none;
+            color: #0d6efd;
+            cursor: pointer;
+            padding: 0;
+            font-size: inherit;
+            text-align: left;
+        }
+
+        /* Novo estilo para o botão "Realizar Consulta" */
+        .btn-primary-custom {
+            background-color: #FBBD24;
+            color: #5a4610;
+            padding: 10px 22px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary-custom:hover {
+            background-color: #FBBD24;
+        }
     </style>
 </head>
 <body>
@@ -127,21 +277,26 @@ $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
 
     <!-- Conteúdo Principal -->
     <main class="main-content">
-        <header class="main-header" style="margin-bottom: 40px;">
-            <h1>Relatório de Hóspedes</h1>
-            <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">
-                <i class="fas fa-calendar-day"></i> Hoje: <?= date('d/m/Y') ?>
-            </p>
+        <header class="main-header" style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1 style="display: inline-block; margin-right: 20px;">Relatório de Hóspedes</h1>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                <a href="consultas_personalizadas.php" class="btn-primary-custom" style="padding: 10px 22px; font-size: 1rem; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-search"></i> Realizar Consulta
+                </a>
+            </div>
         </header>
+        
         <div class="container mt-3" style="max-width: 1400px;">
             <!-- Cards de Estatísticas -->
-            <div class="summary-cards" style="margin-bottom: -20px;">
+            <div class="summary-cards" style="margin-bottom: 20px;">
                 <div class="card">
                     <div class="card-icon" style="background-color: #e3f2fd; color: #0d6efd;">
                         <i class="bi bi-people"></i>
                     </div>
                     <div class="card-info">
-                        <span class="card-value"><?= $stats['total_hospedes'] ?? 0 ?></span>
+                        <span class="card-value" style="font-size: 20px"><?= $stats['total_hospedes'] ?? 0 ?></span>
                         <span class="card-label">Total de Hóspedes</span>
                     </div>
                 </div>
@@ -150,7 +305,7 @@ $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
                         <i class="bi bi-person-check"></i>
                     </div>
                     <div class="card-info">
-                        <span class="card-value"><?= $stats['hospedes_ativos'] ?? 0 ?></span>
+                        <span class="card-value" style="font-size: 20px"><?= $stats['hospedes_ativos'] ?? 0 ?></span>
                         <span class="card-label">Hóspedes Ativos</span>
                     </div>
                 </div>
@@ -159,7 +314,7 @@ $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
                         <i class="bi bi-calendar-check"></i>
                     </div>
                     <div class="card-info">
-                        <span class="card-value"><?= $stats['total_reservas'] ?? 0 ?></span>
+                        <span class="card-value" style="font-size: 20px"><?= $stats['total_reservas'] ?? 0 ?></span>
                         <span class="card-label">Total Reservas</span>
                     </div>
                 </div>
@@ -168,24 +323,27 @@ $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
                         <i class="bi bi-currency-dollar"></i>
                     </div>
                     <div class="card-info">
-                        <span class="card-value">R$ <?= number_format($stats['receita_total'] ?? 0, 2, ',', '.') ?></span>
+                        <span class="card-value" style="font-size: 20px">R$ <?= number_format($stats['receita_total'] ?? 0, 2, ',', '.') ?></span>
                         <span class="card-label">Receita Total</span>
                     </div>
                 </div>
             </div>
 
             <!-- Hóspedes Ativos Agora -->
-            <div class="card mb-5" style="padding-bottom: 10px;">
-                <div class="card-header bg-success text-white" style="margin-bottom: 20px;">
-                    <h5 class="mb-0"><i class="bi bi-door-open"></i> Hóspedes com Check-in Ativo</h5>
+            <div class="report-card">
+                <div class="report-card-header">
+                    <h3 class="report-card-title">
+                        <i class="bi bi-door-open"></i>
+                        Hóspedes com Check-in Ativo
+                    </h3>
                 </div>
-                <div class="card-body" style="padding-bottom: 0;">
+                <div class="report-card-body">
                     <?php if (empty($hospedesAtivos)): ?>
                         <div class="alert alert-info mb-0">
                             <i class="bi bi-info-circle"></i> Nenhum hóspede com check-in ativo no momento.
                         </div>
                     <?php else: ?>
-                        <div class="table-responsive mb-0">
+                        <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
                                 <thead>
                                     <tr>
@@ -230,17 +388,20 @@ $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
             </div>
 
             <!-- Top 10 Hóspedes Mais Frequentes -->
-            <div class="card mb-5" style="padding-bottom: 10px;">
-                <div class="card-header bg-primary text-white" style="margin-bottom: 20px;">
-                    <h5 class="mb-0"><i class="bi bi-trophy"></i> Top 10 Hóspedes Mais Frequentes</h5>
+            <div class="report-card">
+                <div class="report-card-header">
+                    <h3 class="report-card-title">
+                        <i class="bi bi-trophy"></i>
+                        Top 10 Hóspedes Mais Frequentes
+                    </h3>
                 </div>
-                <div class="card-body" style="padding-bottom: 0;">
+                <div class="report-card-body">
                     <?php if (empty($top)): ?>
                         <div class="alert alert-info mb-0">
                             <i class="bi bi-info-circle"></i> Nenhum dado disponível ainda.
                         </div>
                     <?php else: ?>
-                        <div class="table-responsive mb-0">
+                        <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
                                 <thead>
                                     <tr>
@@ -270,9 +431,11 @@ $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
                                             <td>
                                                 <strong><?= htmlspecialchars($hospede['nome']) ?></strong>
                                                 <br>
-                                                <small class="text-muted">
-                                                    <i class="bi bi-envelope"></i> <?= htmlspecialchars($hospede['email']) ?>
-                                                </small>
+                                                <?php
+                                                $reservas = buscarReservasPorHospede($controller->conn, $hospede['nome']);
+                                                if ($reservas):
+                                                ?>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="text-center">
                                                 <span class="badge bg-info fs-6">
@@ -301,43 +464,10 @@ $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
                     <?php endif; ?>
                 </div>
             </div>
-
-            <!-- Informações Adicionais -->
-            <div class="card mb-5">
-                <div class="card-body bg-light py-4">
-                    <div class="row text-center g-4">
-                        <div class="col-md-4 mb-3 mb-md-0">
-                            <h5 class="text-muted mb-2">Ticket Médio Geral</h5>
-                            <h3 class="text-primary mb-0">R$ <?= number_format($stats['ticket_medio_geral'] ?? 0, 2, ',', '.') ?></h3>
-                        </div>
-                        <div class="col-md-4 mb-3 mb-md-0">
-                            <h5 class="text-muted mb-2">Taxa de Ocupação</h5>
-                            <h3 class="text-success mb-0">
-                                <?php 
-                                $taxa = $stats['total_hospedes'] > 0 
-                                    ? ($stats['hospedes_ativos'] / $stats['total_hospedes']) * 100 
-                                    : 0;
-                                echo number_format($taxa, 1) . '%';
-                                ?>
-                            </h3>
-                        </div>
-                        <div class="col-md-4">
-                            <h5 class="text-muted mb-2">Média Reservas/Hóspede</h5>
-                            <h3 class="text-info mb-0">
-                                <?php 
-                                $media = $stats['total_hospedes'] > 0 
-                                    ? $stats['total_reservas'] / $stats['total_hospedes'] 
-                                    : 0;
-                                echo number_format($media, 1);
-                                ?>
-                            </h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
 </div>
+
 <script>
 function toggleDropdown(element) {
     const menu = element.nextElementSibling;
