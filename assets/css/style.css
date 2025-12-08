@@ -1180,44 +1180,165 @@ textarea.form-control {
     color: #999;
 }
 
-@media (max-width: 768px) {
-    .data-table {
-        font-size: 0.85rem;
-    }
+/* ====== Relatório de Hóspedes (relatorio_hospede.php) ====== */
+.stat-card {
+    border-left: 4px solid;
+    transition: transform 0.3s ease;
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+.stat-card-primary { border-color: #0d6efd; }
+.stat-card-success { border-color: #198754; }
+.stat-card-warning { border-color: #ffc107; }
+.stat-card-info { border-color: #0dcaf0; }
 
-    .data-table thead th,
-    .data-table tbody td {
-        padding: 10px;
-    }
+.top-badge {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+.top-1 { background: linear-gradient(135deg, #FFD700, #FFA500); }
+.top-2 { background: linear-gradient(135deg, #C0C0C0, #808080); }
+.top-3 { background: linear-gradient(135deg, #CD7F32, #8B4513); }
 
-    .btn-action {
-        width: 32px;
-        height: 32px;
-        font-size: 12px;
-    }
-
-    .table-actions {
-        gap: 4px;
-    }
+/* Novo estilo para títulos dos cards de relatório */
+.report-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    overflow: hidden;
+    margin-bottom: 30px;
 }
 
-/* Mensagem de erro dos formulários */
-.text-muted {
-    display: block;
-    margin-top: 8px;
-    font-size: 0.875rem;
-    line-height: 1.4;
+.report-card-header {
+    background: linear-gradient(135deg, #d6a427ff 0%, #d6a427ff 100%);
+    padding: 20px 30px;
+    border-bottom: 3px solid #6B5111;
 }
 
-/* Estilo específico para erro de validação */
-small.text-muted {
-    margin-top: 8px;
-    padding: 6px 10px;
-    border-radius: 4px;
-    background-color: rgba(211, 47, 47, 0.05);
+.report-card-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #6B5111;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-/* Ícone de erro com espaçamento */
-small.text-muted i {
-    margin-right: 6px;
+.report-card-title i {
+    font-size: 1.3rem;
+}
+
+.report-card-subtitle {
+    font-family: 'Lato', sans-serif;
+    font-size: 0.9rem;
+    color: #5a4610;
+    margin: 8px 0 0 0;
+    font-weight: 400;
+}
+
+.report-card-body {
+    padding: 25px 30px;
+}
+
+/* Ajuste para as tabelas dentro dos cards */
+.report-card .table-responsive {
+    margin: 0;
+}
+
+.report-card table {
+    margin-bottom: 0;
+}
+
+/* Estilo do modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.modal-header-cinzel {
+    background: linear-gradient(135deg, #d6a427ff 0%, #d6a427ff 100%);
+    padding: 15px;
+    border-bottom: 3px solid #6B5111;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-body-columns {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px 0;
+}
+
+.modal-body-columns .column {
+    flex: 1;
+}
+
+/* Estilo para o botão de ver reservas */
+.btn-view-details {
+    background: none;
+    border: none;
+    color: #0d6efd;
+    cursor: pointer;
+    padding: 0;
+    font-size: inherit;
+    text-align: left;
+}
+
+/* Novo estilo para o botão "Realizar Consulta" */
+.btn-primary-custom {
+    background-color: #FBBD24;
+    color: #5a4610;
+    padding: 10px 22px;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary-custom:hover {
+    background-color: #FBBD24;
 }

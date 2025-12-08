@@ -1,10 +1,8 @@
 <?php
-// Aqui você pode incluir lógica para processar a pesquisa
 $pesquisa = $_GET['pesquisa'] ?? '';
 $tipo = $_GET['tipo'] ?? '';
 $resultados = [];
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pesquisa && $tipo) {
-    // Exemplo de lógica para consulta (adapte conforme suas queries)
     require_once __DIR__ . '/../../controller/RelatorioController.php';
     $controller = new \Controller\RelatorioController();
     switch ($tipo) {
@@ -26,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pesquisa && $tipo) {
             $stmt->execute(['%' . $pesquisa . '%']);
             $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
             break;
-        // Adicione outros tipos conforme necessário
     }
 }
 ?>
@@ -40,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pesquisa && $tipo) {
 </head>
 <body>
 <div class="dashboard-wrapper">
-    <aside class="sidebar">
+    <aside class="sidebar" style="font-weight: 400;">
         <div class="sidebar-header">
             <a href="../../index.php"><img src="../../assets/img/logo.png" alt="Palácio Lumière Logo"></a>
         </div>
@@ -94,10 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pesquisa && $tipo) {
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="dropdown-menu">
-                    <a href="../../criar_reserva.php"><i class="fas fa-plus"></i> Nova Reserva</a>
-                    <a href="../../lista_reservas.php"><i class="fas fa-list"></i> Listar</a>
-                    <a href="../../editar_reserva.php"><i class="fas fa-edit"></i> Editar</a>
-                    <a href="../../deletar_reserva.php"><i class="fas fa-trash"></i> Deletar</a>
+                    <a href="../../view/criar_reserva.php"><i class="fas fa-plus"></i> Nova Reserva</a>
+                    <a href="../../view/lista_reservas.php"><i class="fas fa-list"></i> Listar</a>
+                    <a href="../../view/editar_reserva.php"><i class="fas fa-edit"></i> Editar</a>
+                    <a href="../../view/deletar_reserva.php"><i class="fas fa-trash"></i> Deletar</a>
                 </div>
             </div>
             <!-- Relatórios -->
@@ -107,9 +104,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pesquisa && $tipo) {
         </nav>
     </aside>
     <main class="main-content">
-        <header class="main-header">
-            <h1><i class="fas fa-search"></i> Consultas Personalizadas</h1>
+        <header class="main-header" style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1 style="display: inline-block; margin-right: 20px;">CONSULTAS PERSONALIZADAS</h1>
+            </div>
         </header>
+        
         <div class="form-container">
             <form method="GET" action="">
                 <div class="row">
@@ -127,7 +127,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pesquisa && $tipo) {
                                 <option value="hospede_nome" <?= $tipo == 'hospede_nome' ? 'selected' : '' ?>>Nome do Hóspede</option>
                                 <option value="quarto_numero" <?= $tipo == 'quarto_numero' ? 'selected' : '' ?>>Número do Quarto</option>
                                 <option value="status" <?= $tipo == 'status' ? 'selected' : '' ?>>Status da Reserva</option>
-                                <!-- Adicione outros tipos conforme necessário -->
                             </select>
                         </div>
                     </div>
@@ -182,5 +181,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pesquisa && $tipo) {
         </div>
     </main>
 </div>
+<script>
+function toggleDropdown(element) {
+    const menu = element.nextElementSibling;
+    menu.classList.toggle('show');
+    element.classList.toggle('active');
+}
+</script>
 </body>
 </html>

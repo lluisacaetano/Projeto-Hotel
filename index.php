@@ -169,20 +169,21 @@ try {
 
                 <!-- Reservas Dropdown -->
                 <div class="nav-item">
-                    <div class="dropdown-toggle" onclick="toggleDropdown(this)">
-                        <span><i class="fas fa-calendar-alt"></i> Reservas</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="dropdown-menu">
-                        <a href="criar_reserva.php"><i class="fas fa-plus"></i> Nova Reserva</a>
-                        <a href="lista_reservas.php"><i class="fas fa-list"></i> Listar</a>
-                        <a href="editar_reserva.php"><i class="fas fa-edit"></i> Editar</a>
-                        <a href="deletar_reserva.php"><i class="fas fa-trash"></i> Deletar</a>
-                    </div>
+                <div class="dropdown-toggle" onclick="toggleDropdown(this)">
+                    <span><i class="fas fa-calendar-alt"></i> Reservas</span>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
-                <div class="nav-item">
-                    <a href="view/relatorios/relatorio_hospede.php"><i class="fas fa-chart-bar"></i> Relatórios</a>
+                <div class="dropdown-menu">
+                    <a href="view/criar_reserva.php"><i class="fas fa-plus"></i> Nova Reserva</a>
+                    <a href="view/lista_reservas.php"><i class="fas fa-list"></i> Listar</a>
+                    <a href="view/editar_reserva.php"><i class="fas fa-edit"></i> Editar</a>
+                    <a href="view/deletar_reserva.php"><i class="fas fa-trash"></i> Deletar</a>
                 </div>
+            </div>
+            <!-- Relatórios -->
+            <div class="nav-item">
+                <a href="view/relatorios/relatorio_hospede.php"><i class="fas fa-chart-bar"></i> Relatórios</a>
+            </div>
             </nav>
         </aside>
 
