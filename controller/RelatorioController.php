@@ -155,16 +155,35 @@ class RelatorioController {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Consulta aninhada: Reservas feitas por hóspedes VIP (aqueles com mais de 5 reservas).
+     */
+    public function reservasPorHospedesVIP() {
+        $sql = "SELECT r.*, p.nome
+                FROM reserva r
+                INNER JOIN hospede h ON r.id_hospede = h.id_pessoa
+                INNER JOIN pessoa p ON h.id_pessoa = p.id_pessoa
+                WHERE r.id_hospede IN (
+                    SELECT h.id_pessoa
+                    FROM reserva r2
+                    INNER JOIN hospede h ON r2.id_hospede = h.id_pessoa
+                    GROUP BY h.id_pessoa
+                    HAVING COUNT(r2.idreserva) > 5
+                )";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function dashboard() {
         // Estatísticas gerais
         $estatisticas = [
             'total_hospedes' => 0,
-            'hospedes_ativos' => 0,
             'total_reservas' => 0,
             'receita_total' => 0,
             'ticket_medio_geral' => 0
         ];
-        $hospedes_ativos = [];
+        $hospedes_checkin_ativo = [];
 
         // Total de hóspedes
         $sql = "SELECT COUNT(*) as total FROM pessoa WHERE tipo_pessoa = 'hospede'";
@@ -172,39 +191,41 @@ class RelatorioController {
         $stmt->execute();
         $estatisticas['total_hospedes'] = (int)$stmt->fetchColumn();
 
-        // Total de reservas e receita
-        $sql = "SELECT COUNT(*) as total, SUM(valor_reserva) as receita FROM reserva WHERE status IN ('confirmada', 'finalizada')";
+        // Total de reservas
+        $sql = "SELECT COUNT(*) as total FROM reserva";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $estatisticas['total_reservas'] = (int)$stmt->fetchColumn();
+
+        // Receita total (apenas reservas finalizadas)
+        $sql = "SELECT SUM(valor_reserva) as receita FROM reserva WHERE status = 'finalizada'";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $estatisticas['total_reservas'] = (int)$row['total'];
-        $estatisticas['receita_total'] = (float)$row['receita'];
+        $estatisticas['receita_total'] = (float)($row['receita'] ?? 0);
 
         // Ticket médio geral
         $estatisticas['ticket_medio_geral'] = $estatisticas['total_reservas'] > 0
             ? $estatisticas['receita_total'] / $estatisticas['total_reservas']
             : 0;
 
-        // Hóspedes ativos (check-in <= hoje e check-out >= hoje)
+        // Hóspedes com check-in ativo (reservas em andamento)
         $sql = "SELECT p.nome, q.numero AS numero_quarto, r.data_checkin_previsto AS data_checkin, r.data_checkout_previsto AS data_checkout,
                        DATEDIFF(r.data_checkout_previsto, CURDATE()) AS dias_restantes, p.telefone
                 FROM pessoa p
                 INNER JOIN hospede h ON p.id_pessoa = h.id_pessoa
                 INNER JOIN reserva r ON h.id_pessoa = r.id_hospede
                 INNER JOIN quarto q ON r.id_quarto = q.id_quarto
-                WHERE r.status = 'confirmada'
+                WHERE r.status = 'em andamento'
                   AND CURDATE() BETWEEN r.data_checkin_previsto AND r.data_checkout_previsto";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute();
-        $hospedes_ativos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Hóspedes ativos (quantidade)
-        $estatisticas['hospedes_ativos'] = count($hospedes_ativos);
+        $hospedes_checkin_ativo = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
             'sucesso' => true,
             'estatisticas' => $estatisticas,
-            'hospedes_ativos' => $hospedes_ativos
+            'hospedes_checkin_ativo' => $hospedes_checkin_ativo
         ];
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-use controller\QuartoController;
+use Controller\QuartoController;
 
 require_once __DIR__ . '/../controller/QuartoController.php';
 
@@ -22,8 +22,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Buscar todos os quartos
-$resultado = $controller->lista();
+// Pega termo de pesquisa do GET
+$pesquisa = isset($_GET['pesquisa']) ? trim($_GET['pesquisa']) : '';
+
+// Buscar quartos (com filtro de pesquisa)
+if (!empty($pesquisa)) {
+    $resultado = $controller->pesquisar($pesquisa);
+} else {
+    $resultado = $controller->lista();
+}
+
 if ($resultado['sucesso']) {
     $quartos = $resultado['dados'];
 } else {
@@ -42,6 +50,74 @@ if ($resultado['sucesso']) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
+<style>
+    /* Estilos para a página de listar hóspedes */
+        .actions-search-wrapper {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .btn-group-actions {
+            display: flex !important;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center !important;
+        }
+        .search-form-hospede {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px;
+        }
+        .search-input-custom {
+            padding: 0 16px !important;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            min-width: 220px;
+            background: #f9f9f9;
+            color: #6B5111;
+            height: 44px !important;
+            box-sizing: border-box !important;
+            line-height: normal !important;
+        }
+        .btn-search-custom {
+            background: #FBBD24 !important;
+            color: #6B5111 !important;
+            border: none;
+            border-radius: 6px;
+            padding: 0 20px !important;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px;
+            height: 44px !important;
+            box-sizing: border-box !important;
+            white-space: nowrap;
+        }
+        .btn-search-custom:hover {
+            background: #e6a82a !important;
+        }
+        
+        /* Garantir que os botões principais tenham a mesma altura */
+        .btn-primary-custom,
+        .btn-secondary-custom {
+            height: 44px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px;
+            box-sizing: border-box !important;
+            padding: 0 20px !important;
+            white-space: nowrap;
+        }
+</style>
 <body>
     <div class="dashboard-wrapper">
         <!-- Menu Lateral (Sidebar) -->
@@ -144,14 +220,30 @@ if ($resultado['sucesso']) {
                     </div>
                 <?php endif; ?>
 
-                <!-- Botões de Ação -->
-                <div class="btn-group-actions" style="margin-bottom: 30px;">
-                    <a href="cadastrar_quarto.php" class="btn-primary-custom">
-                        <i class="fas fa-plus-circle"></i> Novo Quarto
-                    </a>
-                    <a href="../index.php" class="btn-secondary-custom">
-                        <i class="fas fa-home"></i> Voltar ao Painel
-                    </a>
+                <!-- Botões de Ação à esquerda, Pesquisa à direita -->
+                <div class="actions-search-wrapper">
+                    <div class="btn-group-actions">
+                        <a href="cadastrar_quarto.php" class="btn-primary-custom">
+                            <i class="fas fa-plus-circle"></i> Novo Quarto
+                        </a>
+                        <a href="../index.php" class="btn-secondary-custom">
+                            <i class="fas fa-home"></i> Voltar ao Painel
+                        </a>
+                    </div>
+                    <form method="GET" class="search-form-hospede" action="">
+                        <input 
+                            type="text" 
+                            name="pesquisa" 
+                            class="search-input-custom" 
+                            placeholder="Pesquisar" 
+                            value="<?= htmlspecialchars($pesquisa) ?>"
+                            minlength="1"
+                            title="Digite para pesquisar"
+                        >
+                        <button type="submit" class="btn-search-custom">
+                            <i class="fas fa-search"></i> Pesquisar
+                        </button>
+                    </form>
                 </div>
 
                 <!-- Tabela de Quartos -->
@@ -171,6 +263,34 @@ if ($resultado['sucesso']) {
                             </thead>
                             <tbody>
                                 <?php foreach ($quartos as $quarto): ?>
+                                    <?php
+                                    // Verifica se existe reserva ativa para este quarto
+                                    require_once __DIR__ . '/../database/Database.php';
+                                    $db = new \database\Database();
+                                    $conn = $db->getConnection();
+                                    $stmtReservaAtiva = $conn->prepare("SELECT COUNT(*) as total FROM reserva WHERE id_quarto = ? AND status = 'em andamento'");
+                                    $stmtReservaAtiva->execute([$quarto['id_quarto']]);
+                                    $reservaAtiva = $stmtReservaAtiva->fetch();
+                                    $temReservaAtiva = ($reservaAtiva['total'] > 0);
+
+                                    // Define status visual
+                                    if ($temReservaAtiva) {
+                                        $status = 'ocupado';
+                                    } else {
+                                        $status = $quarto['status'] ?? 'disponivel';
+                                        // Se estava ocupado mas não tem reserva ativa, volta para disponível
+                                        if ($status === 'ocupado') {
+                                            $status = 'disponivel';
+                                        }
+                                    }
+
+                                    $statusBadges = [
+                                        'disponivel' => ['bg', '#d4edda', '#155724'],      // verde
+                                        'manutencao' => ['bg', '#f8d7da', '#721c24'],      // vermelho
+                                        'ocupado'    => ['bg', '#fff3cd', '#856404']       // amarelo
+                                    ];
+                                    $badge = $statusBadges[$status] ?? $statusBadges['disponivel'];
+                                    ?>
                                     <tr>
                                         <td class="text-center"><strong><?= htmlspecialchars($quarto['numero']) ?></strong></td>
                                         <td class="text-center"><?= htmlspecialchars($quarto['andar']) ?>º</td>
@@ -178,15 +298,6 @@ if ($resultado['sucesso']) {
                                         <td class="text-center"><?= htmlspecialchars($quarto['capacidade_maxima']) ?> pes.</td>
                                         <td>R$ <?= number_format($quarto['valor_diaria'], 2, ',', '.') ?></td>
                                         <td class="text-center">
-                                            <?php
-                                            $statusBadges = [
-                                                'disponivel' => ['bg', '#d4edda', '#155724'],
-                                                'ocupado' => ['bg', '#f8d7da', '#721c24'],
-                                                'manutencao' => ['bg', '#fff3cd', '#856404']
-                                            ];
-                                            $status = $quarto['status'] ?? 'disponivel';
-                                            $badge = $statusBadges[$status] ?? $statusBadges['disponivel'];
-                                            ?>
                                             <span style="background-color: <?= $badge[1] ?>; color: <?= $badge[2] ?>; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
                                                 <?= ucfirst($status) ?>
                                             </span>
@@ -218,10 +329,6 @@ if ($resultado['sucesso']) {
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <h3>Nenhum quarto cadastrado</h3>
-                        <p>Comece a adicionar quartos ao seu hotel.</p>
-                        <a href="cadastrar_quarto.php" class="btn-primary-custom">
-                            <i class="fas fa-plus-circle"></i> Cadastrar Primeiro Quarto
-                        </a>
                     </div>
                 <?php endif; ?>
             </div>

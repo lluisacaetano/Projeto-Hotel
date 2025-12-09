@@ -115,12 +115,46 @@ class ReservaController {
     // UPDATE
     public function atualizar(int $id, array $dados): array {
         try {
-            $sql = "UPDATE reserva SET status = ?, data_checkin_previsto = ?, data_checkout_previsto = ? WHERE idreserva = ?";
+            // Calcular valor total atualizado
+            $checkin = new \DateTime($dados['data_checkin_previsto']);
+            $checkout = new \DateTime($dados['data_checkout_previsto']);
+            $noites = $checkout->diff($checkin)->days;
+
+            if ($noites < 1) {
+                return ['sucesso' => false, 'erros' => ['O checkout deve ser posterior ao checkin.']];
+            }
+
+            // Buscar preço do quarto
+            $sqlQuarto = "SELECT valor_diaria FROM quarto WHERE id_quarto = ?";
+            $stmtQuarto = $this->db->prepare($sqlQuarto);
+            $stmtQuarto->execute([$dados['quarto_id']]);
+            $quarto = $stmtQuarto->fetch(PDO::FETCH_ASSOC);
+
+            if (!$quarto) {
+                return ['sucesso' => false, 'erros' => ['Quarto não encontrado.']];
+            }
+
+            $valor_total = $quarto['valor_diaria'] * $noites;
+
+            // Remover num_hospedes e observacoes do UPDATE se não existem na tabela
+            $sql = "UPDATE reserva SET 
+                    status = ?, 
+                    data_checkin_previsto = ?, 
+                    data_checkout_previsto = ?, 
+                    id_quarto = ?, 
+                    id_funcionario = ?, 
+                    id_hospede = ?, 
+                    valor_reserva = ?
+                WHERE idreserva = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 $dados['status'],
-                $dados['data_checkin'],
-                $dados['data_checkout'],
+                $dados['data_checkin_previsto'],
+                $dados['data_checkout_previsto'],
+                $dados['quarto_id'],
+                $dados['funcionario_id'],
+                $dados['hospede_id'],
+                $valor_total,
                 $id
             ]);
 
@@ -179,6 +213,33 @@ class ReservaController {
             return ['sucesso' => true, 'mensagem' => 'Check-out realizado com sucesso!'];
         } catch (Exception $e) {
             return ['sucesso' => false, 'erros' => ['Erro: ' . $e->getMessage()]];
+        }
+    }
+
+    // PESQUISAR RESERVA
+    public function pesquisar(string $termo): array {
+        try {
+            $sql = "SELECT r.*, 
+                           p.nome AS hospede_nome, 
+                           q.numero AS quarto_numero
+                    FROM reserva r
+                    INNER JOIN hospede h ON r.id_hospede = h.id_pessoa
+                    INNER JOIN pessoa p ON h.id_pessoa = p.id_pessoa
+                    INNER JOIN quarto q ON r.id_quarto = q.id_quarto
+                    WHERE p.nome LIKE :termo_hospede
+                       OR CAST(q.numero AS CHAR) LIKE :termo_quarto
+                       OR r.status LIKE :termo_status
+                    ORDER BY r.idreserva DESC";
+            $like = '%' . $termo . '%';
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':termo_hospede', $like);
+            $stmt->bindValue(':termo_quarto', $like);
+            $stmt->bindValue(':termo_status', $like);
+            $stmt->execute();
+            $reservas = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            return ['sucesso' => true, 'dados' => $reservas];
+        } catch (\Exception $e) {
+            return ['sucesso' => false, 'erros' => ['Erro ao pesquisar reservas: ' . $e->getMessage()]];
         }
     }
 }

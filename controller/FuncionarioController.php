@@ -106,11 +106,26 @@ class FuncionarioController {
 
     public function lista(): array {
         try {
-            $stmt = $this->funcionario->read();
+            // Mostra todos os funcionários cadastrados na tabela funcionario,
+            // trazendo dados da pessoa se existir, senão mostra só os dados da tabela funcionario.
+            $sql = "
+                SELECT 
+                    f.id_pessoa as id,
+                    p.nome,
+                    p.documento as cpf,
+                    p.email,
+                    f.cargo,
+                    f.turno
+                FROM funcionario f
+                LEFT JOIN pessoa p ON f.id_pessoa = p.id_pessoa
+                ORDER BY p.nome IS NULL, p.nome ASC
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
             $funcionarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             return ['sucesso' => true, 'dados' => $funcionarios];
         } catch (Exception $e) {
-            return ['sucesso' => false, 'erros' => ['Erro ao lista: ' . $e->getMessage()]];
+            return ['sucesso' => false, 'erros' => ['Erro ao listar: ' . $e->getMessage()]];
         }
     }
 
@@ -214,7 +229,6 @@ class FuncionarioController {
                     'sucesso' => false, 
                     'erros' => [
                         'Não é possível excluir este funcionário pois ele possui reservas vinculadas.',
-                        'Para manter a integridade dos dados, você pode desativar o funcionário em vez de excluí-lo.',
                         'Ou primeiro remova/transfira todas as reservas vinculadas a este funcionário.'
                     ],
                     'tem_vinculo' => true
@@ -253,6 +267,37 @@ class FuncionarioController {
             }
             
             return ['sucesso' => false, 'erros' => ['Erro ao excluir: ' . $e->getMessage()]];
+        }
+    }
+
+    public function pesquisar(string $termo): array {
+        try {
+            // Pesquisa por nome, cpf ou cargo, mesmo que só exista na tabela funcionario
+            $sql = "
+                SELECT 
+                    f.id_pessoa as id,
+                    p.nome,
+                    p.documento as cpf,
+                    p.email,
+                    f.cargo,
+                    f.turno
+                FROM funcionario f
+                LEFT JOIN pessoa p ON f.id_pessoa = p.id_pessoa
+                WHERE 
+                    (p.nome LIKE :nome OR f.cargo LIKE :cargo OR p.documento LIKE :cpf)
+                ORDER BY p.nome IS NULL, p.nome ASC
+            ";
+            $like = '%' . $termo . '%';
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':nome', $like);
+            $stmt->bindValue(':cargo', $like);
+            $stmt->bindValue(':cpf', $like);
+            $stmt->execute();
+            $funcionarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return ['sucesso' => true, 'dados' => $funcionarios];
+        } catch (\Exception $e) {
+            return ['sucesso' => false, 'erros' => ['Erro ao pesquisar funcionários: ' . $e->getMessage()]];
         }
     }
 }

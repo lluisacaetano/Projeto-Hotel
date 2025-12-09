@@ -674,23 +674,27 @@ table th {
 }
 
 .btn-view-details {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    color: #fff;
-    padding: 8px 15px;
-    border-radius: 5px;
+    background: #FBBD24; /* Dourado Quente/Laranja do sistema */
+    border: none;
+    color: #6B5111; /* Verde Oliva */
+    padding: 7px 18px;
+    border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
     margin-top: 10px;
-    backdrop-filter: blur(5px);
     font-weight: 600;
+    font-size: 13px;
+    box-shadow: 0 2px 8px rgba(251, 189, 36, 0.10);
+    letter-spacing: 0.5px;
+    display: inline-block;
 }
 
 .btn-view-details:hover {
-    background: rgba(251, 189, 36, 0.9);
-    color: #6B5111;
+    background: #e6a82a; /* Laranja mais escuro no hover */
+    color: #fff;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 16px rgba(251, 189, 36, 0.18);
     border-color: transparent;
-    transform: translateY(-2px);
 }
 
 /* Modal */
@@ -700,39 +704,69 @@ table th {
     z-index: 2000;
     left: 0;
     top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
+    width: 100vw;
+    height: 100vh;
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(5px);
+    /* Centralização vertical e horizontal */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* Evita scroll na tela */
 }
 
 .modal-content {
     background-color: #fefefe;
-    margin: 5% auto;
-    padding: 30px;
+    width: 95vw;
+    max-width: 1200px;
+    min-width: 350px;
+    min-height: 420px;
+    padding: 48px 60px;
     border: 1px solid #888;
-    width: 80%;
-    max-width: 900px;
-    border-radius: 10px;
+    border-radius: 18px;
     position: relative;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    margin: 0; /* Remove margin para centralizar */
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .modal-close {
     color: #aaa;
     position: absolute;
-    top: 10px;
-    right: 25px;
+    top: 28px; /* Mais abaixo */
+    right: 32px;
     font-size: 35px;
     font-weight: bold;
     transition: color 0.3s ease;
     cursor: pointer;
+    z-index: 10;
 }
 
 .modal-close:hover,
 .modal-close:focus {
     color: #6B5111;
+}
+
+/* Estilo para o número da reserva no modal */
+#modalReservaId {
+    display: inline-block;
+    background: #FBBD24;
+    color: #6B5111;
+    font-family: 'Cinzel', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 6px 18px;
+    margin-left: 12px;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 8px rgba(251,189,36,0.10);
+    vertical-align: middle;
 }
 
 .modal-header-cinzel {
@@ -756,11 +790,14 @@ table th {
 
 .modal-body-columns {
     display: flex;
+    flex-direction: row; /* Lado a lado */
     gap: 40px;
+    padding: 15px 0;
 }
 
 .modal-body-columns .column {
     flex: 1;
+    min-width: 0;
 }
 
 .modal-body-columns h4 {
@@ -780,6 +817,13 @@ table th {
 .modal-body-columns p {
     margin-bottom: 10px;
     line-height: 1.8;
+}
+
+@media (max-width: 900px) {
+    .modal-body-columns {
+        flex-direction: column; /* Empilha em telas pequenas */
+        gap: 20px;
+    }
 }
 
 /* =================================== */
@@ -897,7 +941,6 @@ textarea.form-control {
 .btn-group-actions {
     display: flex;
     gap: 12px;
-    margin-top: 30px;
     flex-wrap: wrap;
 }
 
@@ -1262,12 +1305,11 @@ textarea.form-control {
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 2000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
     background-color: rgba(0,0,0,0.7);
 }
 
@@ -1276,8 +1318,8 @@ textarea.form-control {
     margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 80%;
-    max-width: 600px;
+    width: 90%;
+    max-width: 800px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
@@ -1291,54 +1333,85 @@ textarea.form-control {
 }
 
 .modal-close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
+    color: #6B5111;
+    position: absolute;
+    top: 28px; /* Mais abaixo */
+    right: 32px;
+    font-size: 35px;
     font-weight: bold;
+    transition: color 0.3s ease;
+    cursor: pointer;
+    z-index: 10;
 }
 
 .modal-close:hover,
 .modal-close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
+    color: #6B5111;
 }
 
 .modal-body-columns {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
+    flex-direction: row; /* Lado a lado */
+    gap: 40px;
     padding: 15px 0;
 }
 
 .modal-body-columns .column {
     flex: 1;
+    min-width: 0;
 }
 
-/* Estilo para o botão de ver reservas */
-.btn-view-details {
-    background: none;
+@media (max-width: 900px) {
+    .modal-body-columns {
+        flex-direction: column; /* Empilha em telas pequenas */
+        gap: 20px;
+    }
+}
+
+.search-input-custom {
+    padding: 9px 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    min-width: 220px;
+    background: #f9f9f9;
+    color: #6B5111;
+    transition: border-color 0.2s;
+}
+
+.search-input-custom:focus {
+    border-color: #FBBD24;
+    outline: none;
+}
+
+.btn-search-custom {
+    background: #FBBD24;
+    color: #6B5111;
     border: none;
-    color: #0d6efd;
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-size: 1rem;
     cursor: pointer;
-    padding: 0;
-    font-size: inherit;
-    text-align: left;
-}
-
-/* Novo estilo para o botão "Realizar Consulta" */
-.btn-primary-custom {
-    background-color: #FBBD24;
-    color: #5a4610;
-    padding: 10px 22px;
-    border-radius: 8px;
-    text-decoration: none;
-    display: inline-flex;
+    font-weight: 600;
+    transition: background 0.2s;
+    display: flex;
     align-items: center;
-    gap: 8px;
-    transition: background-color 0.3s ease;
+    gap: 6px;
 }
 
-.btn-primary-custom:hover {
-    background-color: #FBBD24;
+.btn-search-custom:hover {
+    background: #e6a82a;
 }
+
+@media (max-width: 768px) {
+    .btn-group-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-form-hospede {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
+/*# sourceMappingURL=style.css.map */

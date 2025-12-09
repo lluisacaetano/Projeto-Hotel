@@ -40,6 +40,22 @@ try {
     }
     $reserva = $resultado['dados'];
 
+    // NOVO: Atualiza status para "em andamento" se dentro do período vigente
+    $hoje = date('Y-m-d');
+    if (
+        isset($reserva['data_checkin_previsto'], $reserva['data_checkout_previsto']) &&
+        $reserva['status'] !== 'em andamento'
+    ) {
+        $checkin = $reserva['data_checkin_previsto'];
+        $checkout = $reserva['data_checkout_previsto'];
+        if ($checkin <= $hoje && $checkout >= $hoje) {
+            // Atualiza no banco e na variável local
+            $reservaController->atualizar($id, array_merge($reserva, ['status' => 'em andamento']));
+            $resultado = $reservaController->buscarPorId($id);
+            $reserva = $resultado['dados'];
+        }
+    }
+
     // Buscar dados para os selects
     $hospedes_resultado = $hospedeController->lista();
     $hospedes = $hospedes_resultado['sucesso'] ? $hospedes_resultado['dados'] : [];
@@ -53,14 +69,20 @@ try {
     $erros[] = "Erro ao carregar dados: " . $e->getMessage();
 }
 
+// Filtrar funcionários (apenas gerente e recepcionista)
+$funcionarios = array_filter($funcionarios, function($f) {
+    $cargo = strtolower($f['cargo'] ?? '');
+    return $cargo === 'gerente' || $cargo === 'recepcionista';
+});
+
 // Processar formulário
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dados = [
         'hospede_id' => $_POST['hospede_id'] ?? 0,
         'quarto_id' => $_POST['quarto_id'] ?? 0,
         'funcionario_id' => $_POST['funcionario_id'] ?? 0,
-        'data_checkin' => $_POST['data_checkin'] ?? '',
-        'data_checkout' => $_POST['data_checkout'] ?? '',
+        'data_checkin_previsto' => $_POST['data_checkin'] ?? '',
+        'data_checkout_previsto' => $_POST['data_checkout'] ?? '',
         'num_hospedes' => $_POST['num_hospedes'] ?? 1,
         'status' => $_POST['status'] ?? 'pendente',
         'observacoes' => $_POST['observacoes'] ?? null
@@ -77,6 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $erros = $resultado['erros'];
     }
 }
+
+$isFinalizada = in_array($reserva['status'] ?? '', ['finalizada', 'cancelada']);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -198,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="hospede_id" class="form-label required-field">Hóspede</label>
-                                <select class="form-select" id="hospede_id" name="hospede_id" required>
+                                <select class="form-select" id="hospede_id" name="hospede_id" required <?= $isFinalizada ? 'disabled' : '' ?>>
                                     <option value="">Selecione um hóspede...</option>
                                     <?php foreach ($hospedes as $hospede): ?>
                                         <option value="<?= $hospede['id'] ?>" <?= $reserva['id_hospede'] == $hospede['id'] ? 'selected' : '' ?>>
@@ -212,17 +236,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="quarto_id" class="form-label required-field">Quarto</label>
-                                <select class="form-select" id="quarto_id" name="quarto_id" required onchange="atualizarPreco()">
+                                <select class="form-select" id="quarto_id" name="quarto_id" required <?= $isFinalizada ? 'disabled' : '' ?>>
                                     <option value="">Selecione um quarto...</option>
-                                    <?php foreach ($quartos as $quarto): ?>
-                                        <option value="<?= $quarto['id_quarto'] ?>" 
-                                                data-preco="<?= $quarto['valor_diaria'] ?>"
-                                                data-tipo="<?= $quarto['tipo_quarto'] ?>"
-                                                data-numero="<?= $quarto['numero'] ?>"
-                                                <?= $reserva['id_quarto'] == $quarto['id_quarto'] ? 'selected' : '' ?>>
-                                            Quarto <?= $quarto['numero'] ?> - <?= $quarto['tipo_quarto'] ?> (R$ <?= number_format($quarto['valor_diaria'], 2, ',', '.') ?>/dia)
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <!-- Opções serão preenchidas via JS -->
                                 </select>
                             </div>
                         </div>
@@ -232,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="funcionario_id" class="form-label required-field">Responsável</label>
-                                <select class="form-select" id="funcionario_id" name="funcionario_id" required>
+                                <select class="form-select" id="funcionario_id" name="funcionario_id" required <?= $isFinalizada ? 'disabled' : '' ?>>
                                     <option value="">Selecione um funcionário...</option>
                                     <?php foreach ($funcionarios as $funcionario): ?>
                                         <option value="<?= $funcionario['id'] ?>" <?= $reserva['id_funcionario'] == $funcionario['id'] ? 'selected' : '' ?>>
@@ -246,10 +262,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="status" class="form-label required-field">Status</label>
-                                <select class="form-select" id="status" name="status" required>
+                                <select class="form-select" id="status" name="status" required <?= $isFinalizada ? 'disabled' : '' ?>>
                                     <option value="pendente" <?= $reserva['status'] == 'pendente' ? 'selected' : '' ?>>Pendente</option>
                                     <option value="confirmada" <?= $reserva['status'] == 'confirmada' ? 'selected' : '' ?>>Confirmada</option>
                                     <option value="cancelada" <?= $reserva['status'] == 'cancelada' ? 'selected' : '' ?>>Cancelada</option>
+                                    <?php if ($reserva['status'] == 'em andamento'): ?>
+                                        <option value="em andamento" selected>Em Andamento</option>
+                                    <?php endif; ?>
                                     <option value="finalizada" <?= $reserva['status'] == 'finalizada' ? 'selected' : '' ?>>Finalizada</option>
                                 </select>
                             </div>
@@ -266,7 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="form-group">
                                 <label for="data_checkin" class="form-label required-field">Data de Check-in</label>
                                 <input type="date" class="form-control" id="data_checkin" name="data_checkin"
-                                       value="<?= htmlspecialchars($reserva['data_checkin_previsto']) ?>" required>
+                                       value="<?= htmlspecialchars($reserva['data_checkin_previsto']) ?>" required <?= $isFinalizada ? 'disabled' : '' ?>>
                             </div>
                         </div>
 
@@ -274,7 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="form-group">
                                 <label for="data_checkout" class="form-label required-field">Data de Check-out</label>
                                 <input type="date" class="form-control" id="data_checkout" name="data_checkout"
-                                       value="<?= htmlspecialchars($reserva['data_checkout_previsto']) ?>" required>
+                                       value="<?= htmlspecialchars($reserva['data_checkout_previsto']) ?>" required <?= $isFinalizada ? 'disabled' : '' ?>>
                             </div>
                         </div>
 
@@ -282,7 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="form-group">
                                 <label for="num_hospedes" class="form-label required-field">Nº de Hóspedes</label>
                                 <input type="number" class="form-control" id="num_hospedes" name="num_hospedes"
-                                       min="1" max="10" value="<?= htmlspecialchars($reserva['num_hospedes'] ?? '1') ?>" required>
+                                       min="1" max="10" value="<?= htmlspecialchars($reserva['num_hospedes'] ?? '1') ?>" required <?= $isFinalizada ? 'disabled' : '' ?>>
                             </div>
                         </div>
                     </div>
@@ -326,25 +345,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label for="observacoes" class="form-label">Observações Adicionais</label>
                         <textarea class="form-control" id="observacoes" name="observacoes" rows="3"
+                                  <?= $isFinalizada ? 'disabled' : '' ?>
                                   placeholder="Ex: Preferências especiais, requisições, notas importantes..."><?= htmlspecialchars($reserva['observacoes'] ?? '') ?></textarea>
                     </div>
 
                     <!-- Botões -->
                     <div class="btn-group-actions">
-                        <button type="submit" class="btn-primary-custom">
-                            <i class="fas fa-save"></i> Salvar Alterações
-                        </button>
+                        <?php if (!$isFinalizada): ?>
+                            <button type="submit" class="btn-primary-custom">
+                                <i class="fas fa-save"></i> Salvar Alterações
+                            </button>
+                        <?php endif; ?>
                         <a href="lista_reservas.php" class="btn-secondary-custom">
                             <i class="fas fa-list"></i> Ver Lista
                         </a>
                         <a href="../index.php" class="btn-secondary-custom">
                             <i class="fas fa-home"></i> Voltar ao Painel
                         </a>
-                        <button type="button" class="btn-secondary-custom" 
-                                style="background-color: #ffebee; color: #d32f2f; border-color: #ffebee; margin-left: auto;"
-                                onclick="confirmarExclusao(<?= $id ?>, '<?= htmlspecialchars($reserva['hospede_nome']) ?>')">
-                            <i class="fas fa-trash"></i> Excluir Reserva
-                        </button>
+                        <?php if (!$isFinalizada): ?>
+                            <button type="button" class="btn-secondary-custom" 
+                                    style="background-color: #ffebee; color: #d32f2f; border-color: #ffebee; margin-left: auto;"
+                                    onclick="confirmarExclusao(<?= $id ?>, '<?= htmlspecialchars($reserva['hospede_nome']) ?>')">
+                                <i class="fas fa-trash"></i> Excluir Reserva
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </form>
             </div>
@@ -461,6 +485,63 @@ document.querySelector('form').addEventListener('submit', function(e) {
     }
 
     return true;
+});
+
+function habilitarQuartoESincronizarEditar() {
+    const checkin = document.getElementById('data_checkin').value;
+    const checkout = document.getElementById('data_checkout').value;
+    const quartoSelect = document.getElementById('quarto_id');
+    const quartoAtual = "<?= $reserva['id_quarto'] ?>";
+
+    if (checkin && checkout) {
+        quartoSelect.disabled = true;
+        quartoSelect.innerHTML = '<option value="">Carregando quartos disponíveis...</option>';
+
+        fetch('../ajax_quartos_disponiveis.php?checkin=' + encodeURIComponent(checkin) + '&checkout=' + encodeURIComponent(checkout) + '&reserva_id=<?= $id ?>')
+            .then(res => res.json())
+            .then(data => {
+                quartoSelect.innerHTML = '';
+                let quartoDisponivel = false;
+                if (Array.isArray(data)) {
+                    if (data.length === 0) {
+                        quartoSelect.innerHTML = '<option value="">Nenhum quarto disponível</option>';
+                    } else {
+                        quartoSelect.innerHTML = '<option value="">Selecione um quarto...</option>';
+                        data.forEach(function(q) {
+                            const selected = (q.id_quarto == quartoAtual) ? 'selected' : '';
+                            if (selected) quartoDisponivel = true;
+                            quartoSelect.innerHTML += `<option value="${q.id_quarto}" data-preco="${q.valor_diaria}" data-tipo="${q.tipo_quarto}" data-numero="${q.numero}" ${selected}>
+                                Quarto ${q.numero} - ${q.tipo_quarto} (R$ ${parseFloat(q.valor_diaria).toLocaleString('pt-BR', {minimumFractionDigits:2})}/dia)
+                            </option>`;
+                        });
+                    }
+                    quartoSelect.disabled = false;
+                    if (!quartoDisponivel) quartoSelect.value = ""; // Desmarca se não disponível
+                } else if (data.error) {
+                    quartoSelect.innerHTML = '<option value="">Erro ao buscar quartos: ' + data.error + '</option>';
+                    quartoSelect.disabled = true;
+                }
+                atualizarPreco();
+            })
+            .catch(() => {
+                quartoSelect.innerHTML = '<option value="">Erro ao buscar quartos</option>';
+                quartoSelect.disabled = true;
+                atualizarPreco();
+            });
+    } else {
+        quartoSelect.disabled = true;
+        quartoSelect.innerHTML = '<option value="">Selecione as datas primeiro</option>';
+        atualizarPreco();
+    }
+}
+
+document.getElementById('data_checkin').addEventListener('change', habilitarQuartoESincronizarEditar);
+document.getElementById('data_checkout').addEventListener('change', habilitarQuartoESincronizarEditar);
+document.getElementById('quarto_id').addEventListener('change', atualizarPreco);
+
+// Habilitar quarto e sincronizar ao carregar
+document.addEventListener('DOMContentLoaded', function() {
+    habilitarQuartoESincronizarEditar();
 });
 </script>
 </body>

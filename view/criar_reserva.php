@@ -33,6 +33,12 @@ try {
     $erros[] = "Erro ao carregar dados: " . $e->getMessage();
 }
 
+// Filtrar funcionários (apenas gerente e recepcionista)
+$funcionarios = array_filter($funcionarios, function($f) {
+    $cargo = strtolower($f['cargo'] ?? '');
+    return $cargo === 'gerente' || $cargo === 'recepcionista';
+});
+
 // Processar formulário
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $controller = new ReservaController();
@@ -196,17 +202,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="quarto_id" class="form-label required-field">Quarto</label>
-                                <select class="form-select" id="quarto_id" name="quarto_id" required onchange="atualizarPreco()">
+                                <select class="form-select" id="quarto_id" name="quarto_id" required disabled>
                                     <option value="">Selecione um quarto...</option>
-                                    <?php foreach ($quartos as $quarto): ?>
-                                        <option value="<?= $quarto['id_quarto'] ?>" 
-                                                data-preco="<?= $quarto['valor_diaria'] ?>"
-                                                data-tipo="<?= $quarto['tipo_quarto'] ?>"
-                                                data-numero="<?= $quarto['numero'] ?>"
-                                                <?= ($_POST['quarto_id'] ?? '') == $quarto['id_quarto'] ? 'selected' : '' ?>>
-                                            Quarto <?= $quarto['numero'] ?> - <?= $quarto['tipo_quarto'] ?> (R$ <?= number_format($quarto['valor_diaria'], 2, ',', '.') ?>/dia)
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <!-- Opções serão preenchidas via JS -->
                                 </select>
                             </div>
                         </div>
@@ -374,6 +372,56 @@ function atualizarPreco() {
     noitesInput.value = noites;
     valorTotalInput.value = 'R$ ' + valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
+
+// Função para habilitar o campo de quarto e sincronizar opções disponíveis
+function habilitarQuartoESincronizar() {
+    const checkin = document.getElementById('data_checkin').value;
+    const checkout = document.getElementById('data_checkout').value;
+    const quartoSelect = document.getElementById('quarto_id');
+
+    if (checkin && checkout) {
+        quartoSelect.disabled = true;
+        quartoSelect.innerHTML = '<option value="">Carregando quartos disponíveis...</option>';
+
+        fetch('../ajax_quartos_disponiveis.php?checkin=' + encodeURIComponent(checkin) + '&checkout=' + encodeURIComponent(checkout))
+            .then(res => res.json())
+            .then(data => {
+                quartoSelect.innerHTML = '';
+                if (Array.isArray(data)) {
+                    if (data.length === 0) {
+                        quartoSelect.innerHTML = '<option value="">Nenhum quarto disponível</option>';
+                    } else {
+                        quartoSelect.innerHTML = '<option value="">Selecione um quarto...</option>';
+                        data.forEach(function(q) {
+                            quartoSelect.innerHTML += `<option value="${q.id_quarto}" data-preco="${q.valor_diaria}" data-tipo="${q.tipo_quarto}" data-numero="${q.numero}">
+                                Quarto ${q.numero} - ${q.tipo_quarto} (R$ ${parseFloat(q.valor_diaria).toLocaleString('pt-BR', {minimumFractionDigits:2})}/dia)
+                            </option>`;
+                        });
+                    }
+                    quartoSelect.disabled = false;
+                } else if (data.error) {
+                    quartoSelect.innerHTML = '<option value="">Erro ao buscar quartos: ' + data.error + '</option>';
+                    quartoSelect.disabled = true;
+                }
+                atualizarPreco(); // Garante cálculo após AJAX
+            })
+            .catch(() => {
+                quartoSelect.innerHTML = '<option value="">Erro ao buscar quartos</option>';
+                quartoSelect.disabled = true;
+                atualizarPreco();
+            });
+    } else {
+        quartoSelect.disabled = true;
+        quartoSelect.innerHTML = '<option value="">Selecione as datas primeiro</option>';
+        atualizarPreco();
+    }
+}
+
+document.getElementById('data_checkin').addEventListener('change', habilitarQuartoESincronizar);
+document.getElementById('data_checkout').addEventListener('change', habilitarQuartoESincronizar);
+
+// NOVO: Atualiza cálculo ao trocar o quarto
+document.getElementById('quarto_id').addEventListener('change', atualizarPreco);
 
 // Validação de Data de Check-in (apenas quando terminar de preencher)
 document.getElementById('data_checkin').addEventListener('blur', function() {

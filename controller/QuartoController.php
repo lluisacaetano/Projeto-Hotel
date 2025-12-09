@@ -35,7 +35,7 @@ class QuartoController {
             }
 
             return ['sucesso' => false, 'erros' => ['Erro ao criar quarto.']];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return ['sucesso' => false, 'erros' => ['Erro: ' . $e->getMessage()]];
         }
     }
@@ -46,7 +46,7 @@ class QuartoController {
             $stmt = $this->quarto->read();
             $quartos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             return ['sucesso' => true, 'dados' => $quartos];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return ['sucesso' => false, 'erros' => ['Erro ao lista quartos: ' . $e->getMessage()]];
         }
     }
@@ -61,7 +61,7 @@ class QuartoController {
             }
 
             return ['sucesso' => false, 'erros' => ['Quarto nao encontrado.']];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return ['sucesso' => false, 'erros' => ['Erro: ' . $e->getMessage()]];
         }
     }
@@ -88,7 +88,7 @@ class QuartoController {
             }
 
             return ['sucesso' => false, 'erros' => ['Erro ao atualizar quarto.']];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return ['sucesso' => false, 'erros' => ['Erro: ' . $e->getMessage()]];
         }
     }
@@ -107,8 +107,29 @@ class QuartoController {
             }
 
             return ['sucesso' => false, 'erros' => ['Erro ao excluir quarto.']];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return ['sucesso' => false, 'erros' => ['Erro: ' . $e->getMessage()]];
+        }
+    }
+
+    public function pesquisar(string $termo): array {
+        try {
+            $sql = "SELECT * FROM quarto
+                    WHERE 
+                        CAST(numero AS CHAR) LIKE :termo_numero
+                        OR tipo_quarto LIKE :termo_tipo
+                        OR status LIKE :termo_status
+                    ORDER BY numero ASC";
+            $like = '%' . $termo . '%';
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':termo_numero', $like);
+            $stmt->bindValue(':termo_tipo', $like);
+            $stmt->bindValue(':termo_status', $like);
+            $stmt->execute();
+            $quartos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            return ['sucesso' => true, 'dados' => $quartos];
+        } catch (\Exception $e) {
+            return ['sucesso' => false, 'erros' => ['Erro ao pesquisar quartos: ' . $e->getMessage()]];
         }
     }
 }

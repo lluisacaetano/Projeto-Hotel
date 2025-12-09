@@ -91,11 +91,9 @@ class HospedeController {
                     LEFT JOIN endereco e ON p.endereco_id_endereco = e.id_endereco
                     WHERE p.tipo_pessoa = 'hospede'
                     ORDER BY p.nome ASC";
-            
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
             $hospedes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
             return ['sucesso' => true, 'dados' => $hospedes];
         } catch (Exception $e) {
             return ['sucesso' => false, 'erros' => ['Erro ao listar hóspedes: ' . $e->getMessage()]];
@@ -202,6 +200,31 @@ class HospedeController {
         } catch (Exception $e) {
             $this->db->rollBack();
             return ['sucesso' => false, 'erros' => ['Erro: ' . $e->getMessage()]];
+        }
+    }
+
+    public function pesquisar(string $termo): array {
+        try {
+            $sql = "SELECT p.id_pessoa as id, p.nome, p.email, p.telefone, p.documento, p.data_nascimento,
+                           p.sexo, p.data_criacao, e.cidade, e.estado
+                    FROM pessoa p
+                    LEFT JOIN endereco e ON p.endereco_id_endereco = e.id_endereco
+                    WHERE p.tipo_pessoa = 'hospede'
+                      AND (
+                          p.nome LIKE :nome
+                          OR p.documento LIKE :documento
+                      )
+                    ORDER BY p.nome ASC";
+            $like = '%' . $termo . '%';
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':nome', $like);
+            $stmt->bindValue(':documento', $like);
+            $stmt->execute();
+            $hospedes = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return ['sucesso' => true, 'dados' => $hospedes];
+        } catch (\Exception $e) {
+            return ['sucesso' => false, 'erros' => ['Erro ao pesquisar hóspedes: ' . $e->getMessage()]];
         }
     }
 }

@@ -12,6 +12,8 @@ $funcionarios = [];
 
 $controller = new FuncionarioController();
 
+$pesquisa = $_GET['pesquisa'] ?? '';
+
 // Se for DELETE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     $resultado = $controller->deletar($_POST['id'] ?? 0);
@@ -22,8 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Buscar todos os funcionários
-$resultado = $controller->lista();
+// Buscar funcionários (com filtro de pesquisa)
+if (!empty($pesquisa) && strlen($pesquisa) >= 3) {
+    $resultado = $controller->pesquisar($pesquisa);
+} else {
+    $resultado = $controller->lista();
+}
+
 if ($resultado['sucesso']) {
     $funcionarios = $resultado['dados'];
 } else {
@@ -42,6 +49,74 @@ if ($resultado['sucesso']) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
+    <style>
+        /* Estilos para a página de listar hóspedes */
+        .actions-search-wrapper {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .btn-group-actions {
+            display: flex !important;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center !important;
+        }
+        .search-form-hospede {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px;
+        }
+        .search-input-custom {
+            padding: 0 16px !important;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            min-width: 220px;
+            background: #f9f9f9;
+            color: #6B5111;
+            height: 44px !important;
+            box-sizing: border-box !important;
+            line-height: normal !important;
+        }
+        .btn-search-custom {
+            background: #FBBD24 !important;
+            color: #6B5111 !important;
+            border: none;
+            border-radius: 6px;
+            padding: 0 20px !important;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px;
+            height: 44px !important;
+            box-sizing: border-box !important;
+            white-space: nowrap;
+        }
+        .btn-search-custom:hover {
+            background: #e6a82a !important;
+        }
+        
+        /* Garantir que os botões principais tenham a mesma altura */
+        .btn-primary-custom,
+        .btn-secondary-custom {
+            height: 44px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px;
+            box-sizing: border-box !important;
+            padding: 0 20px !important;
+            white-space: nowrap;
+        }
+    </style>
 <body>
     <div class="dashboard-wrapper">
         <!-- Menu Lateral (Sidebar) -->
@@ -144,14 +219,30 @@ if ($resultado['sucesso']) {
                     </div>
                 <?php endif; ?>
 
-                <!-- Botões de Ação -->
-                <div class="btn-group-actions" style="margin-bottom: 30px;">
-                    <a href="cadastrar_funcionario.php" class="btn-primary-custom">
-                        <i class="fas fa-plus-circle"></i> Novo Funcionário
-                    </a>
-                    <a href="../index.php" class="btn-secondary-custom">
-                        <i class="fas fa-home"></i> Voltar ao Painel
-                    </a>
+                <!-- Botões de Ação à esquerda, Pesquisa à direita -->
+                <div class="actions-search-wrapper">
+                    <div class="btn-group-actions">
+                        <a href="cadastrar_funcionario.php" class="btn-primary-custom">
+                            <i class="fas fa-plus-circle"></i> Novo Funcionário
+                        </a>
+                        <a href="../index.php" class="btn-secondary-custom">
+                            <i class="fas fa-home"></i> Voltar ao Painel
+                        </a>
+                    </div>
+                    <form method="GET" class="search-form-funcionario" action="">
+                        <input 
+                            type="text" 
+                            name="pesquisa" 
+                            class="search-input-custom" 
+                            placeholder="Pesquisar" 
+                            value="<?= htmlspecialchars($pesquisa) ?>"
+                            minlength="3"
+                            title="Digite ao menos 3 caracteres para pesquisar"
+                        >
+                        <button type="submit" class="btn-search-custom">
+                            <i class="fas fa-search"></i> Pesquisar
+                        </button>
+                    </form>
                 </div>
 
                 <!-- Tabela de Funcionários -->
@@ -205,10 +296,6 @@ if ($resultado['sucesso']) {
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <h3>Nenhum funcionário cadastrado</h3>
-                        <p>Comece a adicionar funcionários ao seu hotel.</p>
-                        <a href="cadastrar_funcionario.php" class="btn-primary-custom">
-                            <i class="fas fa-plus-circle"></i> Cadastrar Primeiro Funcionário
-                        </a>
                     </div>
                 <?php endif; ?>
             </div>

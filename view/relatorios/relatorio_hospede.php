@@ -10,9 +10,10 @@ $controller = new RelatorioController();
 // Buscar dados do dashboard
 $dashboard = $controller->dashboard();
 $topHospedes = $controller->hospedesMaisFrequentes(10);
+$hospedesVIP = $controller->hospedesVIP();
 
 $stats = $dashboard['sucesso'] ? $dashboard['estatisticas'] : [];
-$hospedesAtivos = $dashboard['sucesso'] ? $dashboard['hospedes_ativos'] : [];
+$hospedesCheckinAtivo = $dashboard['sucesso'] ? $dashboard['hospedes_checkin_ativo'] : [];
 $top = $topHospedes['sucesso'] ? $topHospedes['dados'] : [];
 
 // Função para buscar reservas de um hóspede
@@ -118,17 +119,12 @@ function buscarReservasPorHospede($conn, $nome) {
             <div>
                 <h1 style="display: inline-block; margin-right: 20px;">Relatório de Hóspedes</h1>
             </div>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-                <a href="consultas_personalizadas.php" class="btn-primary-custom" style="padding: 10px 22px; font-size: 1rem; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-search"></i> Realizar Consulta
-                </a>
-            </div>
         </header>
         
         <div class="container mt-3" style="max-width: 1400px;">
             <!-- Cards de Estatísticas -->
-            <div class="summary-cards" style="margin-bottom: 20px;">
-                <div class="card">
+            <div class="summary-cards" style="margin-bottom: 20px; display: flex; gap: 24px;">
+                <div class="card" style="flex: 1;">
                     <div class="card-icon" style="background-color: #e3f2fd; color: #0d6efd;">
                         <i class="bi bi-people"></i>
                     </div>
@@ -137,16 +133,7 @@ function buscarReservasPorHospede($conn, $nome) {
                         <span class="card-label">Total de Hóspedes</span>
                     </div>
                 </div>
-                <div class="card">
-                    <div class="card-icon" style="background-color: #d1f5e0; color: #198754;">
-                        <i class="bi bi-person-check"></i>
-                    </div>
-                    <div class="card-info">
-                        <span class="card-value" style="font-size: 20px"><?= $stats['hospedes_ativos'] ?? 0 ?></span>
-                        <span class="card-label">Hóspedes Ativos</span>
-                    </div>
-                </div>
-                <div class="card">
+                <div class="card" style="flex: 1;">
                     <div class="card-icon" style="background-color: #fff8e1; color: #ffc107;">
                         <i class="bi bi-calendar-check"></i>
                     </div>
@@ -155,7 +142,7 @@ function buscarReservasPorHospede($conn, $nome) {
                         <span class="card-label">Total Reservas</span>
                     </div>
                 </div>
-                <div class="card">
+                <div class="card" style="flex: 1;">
                     <div class="card-icon" style="background-color: #e0f7fa; color: #0dcaf0;">
                         <i class="bi bi-currency-dollar"></i>
                     </div>
@@ -166,7 +153,7 @@ function buscarReservasPorHospede($conn, $nome) {
                 </div>
             </div>
 
-            <!-- Hóspedes Ativos Agora -->
+            <!-- Hóspedes com Check-in Ativo (reservas em andamento) -->
             <div class="report-card">
                 <div class="report-card-header">
                     <h3 class="report-card-title">
@@ -175,7 +162,7 @@ function buscarReservasPorHospede($conn, $nome) {
                     </h3>
                 </div>
                 <div class="report-card-body">
-                    <?php if (empty($hospedesAtivos)): ?>
+                    <?php if (empty($hospedesCheckinAtivo)): ?>
                         <div class="alert alert-info mb-0">
                             <i class="bi bi-info-circle"></i> Nenhum hóspede com check-in ativo no momento.
                         </div>
@@ -193,7 +180,7 @@ function buscarReservasPorHospede($conn, $nome) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($hospedesAtivos as $hospede): ?>
+                                    <?php foreach ($hospedesCheckinAtivo as $hospede): ?>
                                         <tr>
                                             <td>
                                                 <strong><?= htmlspecialchars($hospede['nome']) ?></strong>
@@ -215,6 +202,44 @@ function buscarReservasPorHospede($conn, $nome) {
                                                     <i class="bi bi-telephone"></i> <?= Formatter::formatarTelefone($hospede['telefone']) ?>
                                                 </small>
                                             </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Hóspedes VIP -->
+            <div class="report-card">
+                <div class="report-card-header">
+                    <h3 class="report-card-title">
+                        <i class="bi bi-star-fill"></i>
+                        Hóspedes VIP (mais de 5 reservas)
+                    </h3>
+                </div>
+                <div class="report-card-body">
+                    <?php if (empty($hospedesVIP)): ?>
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle"></i> Nenhum hóspede VIP encontrado.
+                        </div>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Nome</th>
+                                        <th>Total de Reservas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($hospedesVIP as $index => $vip): ?>
+                                        <tr>
+                                            <td><?= $index + 1 ?></td>
+                                            <td><strong><?= htmlspecialchars($vip['nome']) ?></strong></td>
+                                            <td><?= $vip['total_reservas'] ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
