@@ -3,7 +3,7 @@
 // Configurações do banco de dados
 $host = 'localhost';
 $user = 'root';
-$password = ''; // Altere se tiver senha
+$password = '';
 $database = 'mydb';
 
 try {

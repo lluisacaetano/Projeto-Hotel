@@ -423,9 +423,9 @@ document.getElementById('data_checkout').addEventListener('change', habilitarQua
 // NOVO: Atualiza cálculo ao trocar o quarto
 document.getElementById('quarto_id').addEventListener('change', atualizarPreco);
 
-// Validação de Data de Check-in (apenas quando terminar de preencher)
+// Validação de Data de Check-in (
 document.getElementById('data_checkin').addEventListener('blur', function() {
-    if (!this.value) return; // Não validar se campo vazio
+    if (!this.value) return; 
     
     const dataCheckin = new Date(this.value + 'T00:00:00');
     const hoje = new Date();
@@ -448,9 +448,9 @@ document.getElementById('data_checkin').addEventListener('blur', function() {
     }
 });
 
-// Validação de Data de Check-out (apenas quando terminar de preencher)
+// Validação de Data de Check-out 
 document.getElementById('data_checkout').addEventListener('blur', function() {
-    if (!this.value) return; // Não validar se campo vazio
+    if (!this.value) return;
     
     const dataCheckin = document.getElementById('data_checkin').value;
     

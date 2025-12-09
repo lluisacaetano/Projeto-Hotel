@@ -1,9 +1,6 @@
 <?php
-// database/Database.php
-
 namespace Database;
 
-// sem '\' antes de PDO e PDOException caso contrrio o php usa constantes dentro do namespace
 class Database {
     private $host = "localhost";
     private $db_name = "mydb";  

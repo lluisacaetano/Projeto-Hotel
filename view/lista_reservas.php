@@ -59,7 +59,7 @@ if ($resultado['sucesso']) {
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <style>
-    /* Estilos para a página de listar hóspedes */
+    /* Estilos para a página de listar reserva */
         .actions-search-wrapper {
             display: flex !important;
             justify-content: space-between !important;

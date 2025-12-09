@@ -79,7 +79,7 @@ function buscarReservasPorHospede($conn, $nome) {
 </head>
 <body>
 <div class="dashboard-wrapper">
-    <!-- Menu Lateral (Sidebar) -->
+    <!-- Menu Lateral-->
     <aside class="sidebar">
         <div class="sidebar-header">
             <a href="../../index.php"><img src="../../assets/img/logo.png" alt="Palácio Lumière Logo"></a>

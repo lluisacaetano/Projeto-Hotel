@@ -311,10 +311,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         hiddenInput.name = 'valor_diaria';
         hiddenInput.value = valor;
         
-        // Remover o name do input visível
         valorInput.removeAttribute('name');
         
-        // Adicionar o hidden ao form
         this.appendChild(hiddenInput);
     });
     </script>

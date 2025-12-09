@@ -7,7 +7,7 @@ use database\Database;
 use PDO;
 
 class RelatorioController {
-    public $conn; // <-- alterado de private para public
+    public $conn;
 
     public function __construct() {
         $db = new Database();
@@ -260,7 +260,7 @@ class RelatorioController {
     }
 
     /**
-     * Top 10 funcionários com mais reservas nos últimos 30 dias (com cargo).
+     * Top 10 funcionários com mais reservas nos últimos 30 dias. 
      */
     public function topFuncionariosMes() {
         $sql = "SELECT f.nome, fu.cargo, COUNT(r.idreserva) AS total_reservas
@@ -277,7 +277,7 @@ class RelatorioController {
     }
 
     /**
-     * Funcionários aniversariantes do mês (consulta só dia e mês).
+     * Funcionários aniversariantes do mês. 
      */
     public function funcionariosAniversariantesMes() {
         $sql = "SELECT p.nome, p.data_nascimento, f.cargo
@@ -290,7 +290,7 @@ class RelatorioController {
     }
 
     /**
-     * Despesas com funcionários (total e listagem).
+     * Despesas com funcionários. 
      */
     public function despesasFuncionarios() {
         // Listagem de funcionários e salários
