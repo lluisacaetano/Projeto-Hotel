@@ -128,7 +128,11 @@ try {
     $stmtProximasReservas->execute();
     $reservas_futuras = $stmtProximasReservas->fetchAll();
 
-    $imagens_quartos = ['assets/img/quarto1.png', 'assets/img/quarto2.png', 'assets/img/quarto3.png'];
+    // Atualize para 11 imagens de quartos
+    $imagens_quartos = [];
+    for ($i = 1; $i <= 11; $i++) {
+        $imagens_quartos[] = "assets/img/quarto{$i}.png";
+    }
 
 } catch (Exception $e) {
     error_log("Erro ao buscar dados do painel: " . $e->getMessage());

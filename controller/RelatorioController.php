@@ -228,4 +228,88 @@ class RelatorioController {
             'hospedes_checkin_ativo' => $hospedes_checkin_ativo
         ];
     }
+
+    /**
+     * Faturamento dos últimos 30 dias (apenas reservas finalizadas).
+     */
+    public function faturamentoUltimos30Dias() {
+        $sql = "SELECT r.*, p.nome AS hospede_nome, f.nome AS funcionario_nome
+                FROM reserva r
+                INNER JOIN hospede h ON r.id_hospede = h.id_pessoa
+                INNER JOIN pessoa p ON h.id_pessoa = p.id_pessoa
+                INNER JOIN funcionario fu ON r.id_funcionario = fu.id_pessoa
+                INNER JOIN pessoa f ON fu.id_pessoa = f.id_pessoa
+                WHERE r.data_reserva >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                  AND r.status = 'finalizada'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $reservas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $sqlTotal = "SELECT SUM(valor_reserva) as total_faturamento
+                     FROM reserva
+                     WHERE data_reserva >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                       AND status = 'finalizada'";
+        $stmtTotal = $this->conn->prepare($sqlTotal);
+        $stmtTotal->execute();
+        $total = $stmtTotal->fetch(PDO::FETCH_ASSOC);
+
+        return [
+            'reservas' => $reservas,
+            'total_faturamento' => (float)($total['total_faturamento'] ?? 0)
+        ];
+    }
+
+    /**
+     * Top 10 funcionários com mais reservas nos últimos 30 dias (com cargo).
+     */
+    public function topFuncionariosMes() {
+        $sql = "SELECT f.nome, fu.cargo, COUNT(r.idreserva) AS total_reservas
+                FROM reserva r
+                INNER JOIN funcionario fu ON r.id_funcionario = fu.id_pessoa
+                INNER JOIN pessoa f ON fu.id_pessoa = f.id_pessoa
+                WHERE r.data_reserva >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                GROUP BY f.id_pessoa
+                ORDER BY total_reservas DESC
+                LIMIT 10";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Funcionários aniversariantes do mês (consulta só dia e mês).
+     */
+    public function funcionariosAniversariantesMes() {
+        $sql = "SELECT p.nome, p.data_nascimento, f.cargo
+                FROM funcionario f
+                INNER JOIN pessoa p ON f.id_pessoa = p.id_pessoa
+                WHERE MONTH(p.data_nascimento) = MONTH(CURDATE())";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Despesas com funcionários (total e listagem).
+     */
+    public function despesasFuncionarios() {
+        // Listagem de funcionários e salários
+        $sql = "SELECT p.nome, f.cargo, f.salario
+                FROM funcionario f
+                INNER JOIN pessoa p ON f.id_pessoa = p.id_pessoa";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $funcionarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Soma total dos salários
+        $sqlTotal = "SELECT SUM(salario) as total_salarios FROM funcionario";
+        $stmtTotal = $this->conn->prepare($sqlTotal);
+        $stmtTotal->execute();
+        $total = $stmtTotal->fetch(PDO::FETCH_ASSOC);
+
+        return [
+            'funcionarios' => $funcionarios,
+            'total_salarios' => (float)($total['total_salarios'] ?? 0)
+        ];
+    }
 }

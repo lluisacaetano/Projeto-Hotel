@@ -11,6 +11,10 @@ $controller = new RelatorioController();
 $dashboard = $controller->dashboard();
 $topHospedes = $controller->hospedesMaisFrequentes(10);
 $hospedesVIP = $controller->hospedesVIP();
+$faturamento30dias = $controller->faturamentoUltimos30Dias();
+$topFuncionariosMes = $controller->topFuncionariosMes();
+$aniversariantesMes = $controller->funcionariosAniversariantesMes();
+$despesasFuncionarios = $controller->despesasFuncionarios();
 
 $stats = $dashboard['sucesso'] ? $dashboard['estatisticas'] : [];
 $hospedesCheckinAtivo = $dashboard['sucesso'] ? $dashboard['hospedes_checkin_ativo'] : [];
@@ -42,6 +46,36 @@ function buscarReservasPorHospede($conn, $nome) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        /* Medalhas para top 3 */
+        .func-medal {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #fff;
+            margin-right: 8px;
+        }
+        .func-medal.gold { background: linear-gradient(135deg, #FFD700, #FFA500); }
+        .func-medal.silver { background: linear-gradient(135deg, #C0C0C0, #808080); }
+        .func-medal.bronze { background: linear-gradient(135deg, #CD7F32, #8B4513); }
+        .total-highlight {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 18px 24px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #6B5111;
+            margin-top: 12px;
+            text-align: right;
+            box-shadow: 0 2px 8px rgba(251,189,36,0.08);
+            border: 1px solid #f3e6c4;
+        }
+    </style>
 </head>
 <body>
 <div class="dashboard-wrapper">
@@ -280,14 +314,14 @@ function buscarReservasPorHospede($conn, $nome) {
                                     <?php foreach ($top as $index => $hospede): ?>
                                         <tr>
                                             <td>
-                                                <?php if ($index < 3): ?>
-                                                    <div class="top-badge top-<?= $index + 1 ?>">
-                                                        <?= $index + 1 ?>
-                                                    </div>
+                                                <?php if ($index === 0): ?>
+                                                    <span class="func-medal gold">🥇</span>
+                                                <?php elseif ($index === 1): ?>
+                                                    <span class="func-medal silver">🥈</span>
+                                                <?php elseif ($index === 2): ?>
+                                                    <span class="func-medal bronze">🥉</span>
                                                 <?php else: ?>
-                                                    <div class="text-center fw-bold text-muted">
-                                                        <?= $index + 1 ?>
-                                                    </div>
+                                                    <span class="top-badge top-<?= $index + 1 ?>"><?= $index + 1 ?></span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
@@ -326,10 +360,216 @@ function buscarReservasPorHospede($conn, $nome) {
                     <?php endif; ?>
                 </div>
             </div>
+
+            <!-- Faturamento dos últimos 30 dias -->
+            <div class="report-card">
+                <div class="report-card-header">
+                    <h3 class="report-card-title">
+                        <i class="bi bi-cash-stack"></i>
+                        Faturamento dos Últimos 30 Dias
+                    </h3>
+                </div>
+                <div class="report-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID Reserva</th>
+                                    <th>Hóspede</th>
+                                    <th>Funcionário</th>
+                                    <th>Data Reserva</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                // Mostra apenas reservas finalizadas
+                                $reservasFinalizadas = array_filter(
+                                    $faturamento30dias['reservas'],
+                                    function($reserva) {
+                                        return strtolower($reserva['status']) === 'finalizada';
+                                    }
+                                );
+                                ?>
+                                <?php foreach ($reservasFinalizadas as $reserva): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($reserva['idreserva']) ?></td>
+                                        <td><?= htmlspecialchars($reserva['hospede_nome']) ?></td>
+                                        <td><?= htmlspecialchars($reserva['funcionario_nome']) ?></td>
+                                        <td><?= htmlspecialchars(date('d/m/Y', strtotime($reserva['data_reserva']))) ?></td>
+                                        <td>R$ <?= number_format($reserva['valor_reserva'], 2, ',', '.') ?></td>
+                                        <td>
+                                            <?php
+                                            $status = strtolower($reserva['status']);
+                                            $badge = [
+                                                'finalizada'   => ['#d4edda', '#155724'],   // verde
+                                                'em andamento' => ['#fff3cd', '#856404'],   // amarelo
+                                                'cancelada'    => ['#f8d7da', '#721c24'],   // vermelho
+                                                'confirmada'   => ['#fed78fff', '#d35400'], // laranja
+                                            ];
+                                            $cor = $badge[$status] ?? ['#e2e3e5', '#383d41'];
+                                            ?>
+                                            <span style="background-color: <?= $cor[0] ?>; color: <?= $cor[1] ?>; padding: 4px 10px; border-radius: 4px; font-size: 0.95em; font-weight: 600;">
+                                                <?= ucfirst($status) ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php if (empty($reservasFinalizadas)): ?>
+                                    <tr>
+                                        <td colspan="6" class="text-center">Nenhuma reserva finalizada nos últimos 30 dias.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="total-highlight">
+                        <i class="bi bi-coin"></i>
+                        Total Faturado: R$ <?= number_format($faturamento30dias['total_faturamento'], 2, ',', '.') ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top 10 Funcionários do Mês -->
+            <div class="report-card">
+                <div class="report-card-header">
+                    <h3 class="report-card-title">
+                        <i class="bi bi-award"></i>
+                        Top 10 Funcionários do Mês (Reservas nos últimos 30 dias)
+                    </h3>
+                </div>
+                <div class="report-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nome</th>
+                                    <th>Cargo</th>
+                                    <th>Total de Reservas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($topFuncionariosMes as $index => $func): ?>
+                                    <tr>
+                                        <td>
+                                            <?php if ($index === 0): ?>
+                                                <span class="func-medal gold">🥇</span>
+                                            <?php elseif ($index === 1): ?>
+                                                <span class="func-medal silver">🥈</span>
+                                            <?php elseif ($index === 2): ?>
+                                                <span class="func-medal bronze">🥉</span>
+                                            <?php else: ?>
+                                                <span class="top-badge top-<?= $index + 1 ?>"><?= $index + 1 ?></span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><strong><?= htmlspecialchars($func['nome']) ?></strong></td>
+                                        <td><?= htmlspecialchars($func['cargo'] ?? '-') ?></td>
+                                        <td><?= $func['total_reservas'] ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php if (empty($topFuncionariosMes)): ?>
+                                    <tr>
+                                        <td colspan="4" class="text-center">Nenhum funcionário com reservas no mês.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Funcionários Aniversariantes do Mês -->
+            <div class="report-card">
+                <div class="report-card-header">
+                    <h3 class="report-card-title">
+                        <i class="bi bi-gift"></i>
+                        Funcionários Aniversariantes do Mês
+                    </h3>
+                </div>
+                <div class="report-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Cargo</th>
+                                    <th>Data de Nascimento</th>
+                                    <th>Idade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($aniversariantesMes as $aniv): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($aniv['nome']) ?></td>
+                                        <td><?= htmlspecialchars($aniv['cargo']) ?></td>
+                                        <td><?= date('d/m', strtotime($aniv['data_nascimento'])) ?></td>
+                                        <td>
+                                            <?php
+                                            $nasc = new DateTime($aniv['data_nascimento']);
+                                            $hoje = new DateTime();
+                                            $idade = $hoje->diff($nasc)->y;
+                                            echo $idade . ' anos';
+                                            ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php if (empty($aniversariantesMes)): ?>
+                                    <tr>
+                                        <td colspan="4" class="text-center">Nenhum aniversariante este mês.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Despesas com Funcionários -->
+            <div class="report-card">
+                <div class="report-card-header">
+                    <h3 class="report-card-title">
+                        <i class="bi bi-cash"></i>
+                        Despesas com Funcionários
+                    </h3>
+                </div>
+                <div class="report-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Cargo</th>
+                                    <th>Salário</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($despesasFuncionarios['funcionarios'] as $func): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($func['nome']) ?></td>
+                                        <td><?= htmlspecialchars($func['cargo']) ?></td>
+                                        <td>R$ <?= number_format($func['salario'], 2, ',', '.') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php if (empty($despesasFuncionarios['funcionarios'])): ?>
+                                    <tr>
+                                        <td colspan="3" class="text-center">Nenhum funcionário cadastrado.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="total-highlight">
+                        <i class="bi bi-coin"></i>
+                        Total de Despesas: R$ <?= number_format($despesasFuncionarios['total_salarios'], 2, ',', '.') ?>
+                    </div>
+                </div>
+            </div
+
         </div>
     </main>
 </div>
-
 <script>
 function toggleDropdown(element) {
     const menu = element.nextElementSibling;
