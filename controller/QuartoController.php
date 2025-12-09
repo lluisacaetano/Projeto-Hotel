@@ -7,7 +7,6 @@ require_once __DIR__ . '/../database/Database.php';
 
 use database\Database;
 use model\Quarto;
-$db = new Database(); 
 
 class QuartoController {
     private $db;

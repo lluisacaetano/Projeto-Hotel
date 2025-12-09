@@ -111,6 +111,7 @@ try {
     // PRÓXIMAS RESERVAS
     // ==========================================
     // Mostra reservas com status 'confirmada' ou 'pendente' (exceto as em andamento)
+    // e que ainda não passaram do checkout
     $sqlProximasReservas = "SELECT r.*, 
                             p.nome as hospede_nome, 
                             p.email, 
@@ -122,10 +123,11 @@ try {
                             INNER JOIN pessoa p ON ho.id_pessoa = p.id_pessoa
                             INNER JOIN quarto q ON r.id_quarto = q.id_quarto
                             WHERE r.status IN ('confirmada', 'pendente')
+                              AND r.data_checkout_previsto >= ?
                             ORDER BY r.data_checkin_previsto ASC
                             LIMIT 10";
     $stmtProximasReservas = $conn->prepare($sqlProximasReservas);
-    $stmtProximasReservas->execute();
+    $stmtProximasReservas->execute([$hoje]);
     $reservas_futuras = $stmtProximasReservas->fetchAll();
 
     // Atualize para 11 imagens de quartos

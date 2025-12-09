@@ -431,6 +431,7 @@ document.getElementById('data_checkin').addEventListener('blur', function() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
+    // Permitir check-in igual ao dia de hoje
     if (dataCheckin < hoje) {
         alert('⚠️ A data de check-in não pode ser anterior à data atual!');
         this.value = '';
@@ -512,7 +513,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
     const checkin = new Date(dataCheckin + 'T00:00:00');
     const checkout = new Date(dataCheckout + 'T00:00:00');
 
-    // Validar check-in não pode ser no passado
+    // Permitir check-in igual ao dia de hoje
     if (checkin < hoje) {
         e.preventDefault();
         alert('⚠️ A data de check-in não pode ser anterior à data atual!');

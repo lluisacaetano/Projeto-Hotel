@@ -32,8 +32,16 @@ if (!empty($pesquisa)) {
     $resultado = $controller->lista();
 }
 
+// Atualiza status para 'finalizada' se a data de checkout já passou
 if ($resultado['sucesso']) {
     $reservas = $resultado['dados'];
+    $hoje = date('Y-m-d');
+    foreach ($reservas as &$reserva) {
+        if (!empty($reserva['data_checkout_previsto']) && $reserva['data_checkout_previsto'] < $hoje) {
+            $reserva['status'] = 'finalizada';
+        }
+    }
+    unset($reserva);
 } else {
     $erros = $resultado['erros'];
 }
